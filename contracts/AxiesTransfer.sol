@@ -15,10 +15,21 @@ interface AxieCore is IERC721 {
 	function getAxie(uint256 _axieId) external view returns (uint256 _genes, uint256 _bornAt);
 }
 
-contract AxiesTransfer is Ownable, Pausable, IERC20 {
+interface AxieBreeding {
+	function breedOwnedAxies(uint256 _sireId, uint256 _matronId, uint256 _birthPlace) external payable returns(uint256);
+	function growToPetiteAxie(uint256 _axieId) external;
+	function growToAdultAxie(uint256 _axieId) external;
+	function breedingFee() external returns(uint256);
+	function getAxieStage(uint256 _axieId) external view returns(uint256);
+	function getBreedingLimit() external view returns(uint256 _limit);
+	function requirementsForBreeding(uint256 _axieId) external view returns(uint256 _numBreeding, uint256 _potionsRequired);
+}
+
+contract AxiesTransfer is Ownable, Pausable {
 
   AxieCore public constant AXIE_CORE = AxieCore(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
   AxieExtraData public constant AXIE_EXTRA = AxieExtraData(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
+	AxieBreeding public constant AXIE_BREEDING = AxieBreeding(0x01AAc5236Ad205ebBe4F6819bC64eF5BeF40b71c);
 
   event AxieDeposit(uint axieId, uint128 ownerFee);
   event AxieRemoval(uint axieId);
