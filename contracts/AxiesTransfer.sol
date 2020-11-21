@@ -27,18 +27,23 @@ interface AxieBreeding {
 
 contract AxiesTransfer is Ownable, Pausable {
 
-  AxieCore public constant AXIE_CORE = AxieCore(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
-  AxieExtraData public constant AXIE_EXTRA = AxieExtraData(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
+	AxieCore public constant AXIE_CORE = AxieCore(0xF5b0A3eFB8e8E4c201e2A935F110eAaF3FFEcb8d);
+	AxieExtraData public constant AXIE_EXTRA = AxieExtraData(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
 	AxieBreeding public constant AXIE_BREEDING = AxieBreeding(0x01AAc5236Ad205ebBe4F6819bC64eF5BeF40b71c);
 
-  event AxieDeposit(uint axieId, uint128 ownerFee);
-  event AxieRemoval(uint axieId);
+	event AxieDeposit(uint axieId, uint128 ownerFee);
+	event AxieRemoval(uint axieId);
 
-  struct AxieOffer {
-    uint128 ownerFee;
-    address owner;
+	struct AxieOffer {
+ 		uint128 ownerFee;
+ 		address owner;
   }
 
-  mapping (uint256 => AxieOffer) public axieToOffer;
+	mapping (uint256 => AxieOffer) public axieToOffer;
 
+	function supplyAxie(uint256 _axieId, uint128 _ownerFee) external whenNotPaused {
+		AXIE_CORE.safeTransferFrom(msg.sender, address(this), _axieId);
+		axieToOffer[_axieId] = AxieOffer(_ownerFee, msg.sender);
+		emit AxieDeposit(_axieId, _ownerFee);
+	}
 }
