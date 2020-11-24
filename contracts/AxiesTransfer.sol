@@ -31,19 +31,32 @@ contract AxiesTransfer is Ownable, Pausable {
 	AxieExtraData public constant AXIE_EXTRA = AxieExtraData(0x10e304a53351B272dC415Ad049Ad06565eBDFE34);
 	AxieBreeding public constant AXIE_BREEDING = AxieBreeding(0x01AAc5236Ad205ebBe4F6819bC64eF5BeF40b71c);
 
-	event AxieDeposit(uint axieId, uint128 ownerFee);
-	event AxieRemoval(uint axieId);
+	event AxieDeposit(uint256 axieId, uint128 ownerFee);
+	event AxieRemoval(uint256 axieId);
 
 	struct AxieOffer {
  		uint128 ownerFee;
+		uint8 maxBreeds;
  		address owner;
   }
 
 	mapping (uint256 => AxieOffer) public axieToOffer;
 
-	function supplyAxie(uint256 _axieId, uint128 _ownerFee) external whenNotPaused {
+	function supplyAxie(uint256 _axieId, uint128 _ownerFee, uint8 _maxBreeds) external whenNotPaused {
+		(,,,uint256 _breedCount) = AXIE_EXTRA.getExtra(_axieId);
+		uint256 _breedingLimit = AXIE_BREEDING.getBreedingLimit();
+
+		require(_breedCount < _breedingLimit, "AxieTransfer: Axie cannot breed");
+
+		axieToOffer[_axieId] = AxieOffer(_ownerFee, _maxBreeds, msg.sender);
 		AXIE_CORE.safeTransferFrom(msg.sender, address(this), _axieId);
-		axieToOffer[_axieId] = AxieOffer(_ownerFee, msg.sender);
 		emit AxieDeposit(_axieId, _ownerFee);
+	}
+
+	function retrieveAxie(uint256 _axieId) external whenNotPaused {
+		require(msg.sender == axieToOffer[_axieId].owner, "AxieTransfer: You are not the owner of this Axie");
+		delete axieToOffer[_axieId];
+		AXIE_CORE.safeTransferFrom(address(this), msg.sender, _axieId);
+		emit AxieRemoval(_axieId);
 	}
 }
