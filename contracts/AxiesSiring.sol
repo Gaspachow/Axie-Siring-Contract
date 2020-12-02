@@ -31,14 +31,14 @@ contract AxiesSiring is AxiesTransfer {
 			uint256 _takenCut = _fee.mul(5);
 			_takenCut = _takenCut.div(100);
 			_ownerCut = _fee - (_takenCut); //safe because _TakenCut is approx 0.25 the fee calculated with safemath above.
-			contractCut.add(_takenCut);
+			contractCut = contractCut.add(_takenCut);
 		} else {
 			_ownerCut = _fee;
 		}
-		SLPBalance[axieOwner].add(_ownerCut);
+		SLPBalance[axieOwner] = SLPBalance[axieOwner].add(_ownerCut);
 	}
 
-	function rentOneAxie(uint256 _ownerAxieId, uint256 _rentedAxieId, uint256 _birthplace) external whenNotPaused payable {
+	function rentOneAxie(uint256 _ownerAxieId, uint256 _rentedAxieId, uint256 _birthplace, bool _useBalance) external whenNotPaused payable {
 		// function variables
 		uint256 _breedingCost = _getBreedingSLPCost(_ownerAxieId, _rentedAxieId);
 		AxieOffer storage _rentedAxieOffer = axieToOffer[_rentedAxieId];
@@ -51,10 +51,22 @@ contract AxiesSiring is AxiesTransfer {
 
 		//effect
 		axieToOffer[_rentedAxieId].maxBreeds--; //safe because the check above (maxBreeds > 0) asserts that (b <= a) in (a - b) scenario.
+		if (_useBalance) {
+			uint256 _prevBalance = SLPBalance[msg.sender];
+			if (_prevBalance >= _totalSLPCost) {
+				SLPBalance[msg.sender] = _prevBalance.sub(_totalSLPCost);
+				_totalSLPCost = 0;
+			} else {
+				SLPBalance[msg.sender] = 0;
+				_totalSLPCost = _totalSLPCost.sub(_prevBalance);
+			}
+		}
 
 		//interact
 		AXIE_CORE.safeTransferFrom(msg.sender, address(this), _ownerAxieId);
-		SLP.transferFrom(msg.sender, address(this), _totalSLPCost);
+		if (_totalSLPCost > 0) {
+			SLP.transferFrom(msg.sender, address(this), _totalSLPCost);
+		}
 		_payFee(uint256(_rentedAxieOffer.ownerFee), _rentedAxieOffer.owner);
 		uint256 _babyAxieId = AXIE_BREEDING.breedOwnedAxies{value:msg.value}(_ownerAxieId, _rentedAxieId, _birthplace);
 		AXIE_CORE.safeTransferFrom(address(this), msg.sender, _ownerAxieId);
@@ -63,7 +75,7 @@ contract AxiesSiring is AxiesTransfer {
 		emit AxieRented(_rentedAxieId);
 	}
 
-	function rentTwoAxies(uint256 _rentedAxieId1, uint256 _rentedAxieId2, uint256 _birthplace) external whenNotPaused payable {
+	function rentTwoAxies(uint256 _rentedAxieId1, uint256 _rentedAxieId2, uint256 _birthplace, bool _useBalance) external whenNotPaused payable {
 		// function variables
 		uint256 _breedingCost = _getBreedingSLPCost(_rentedAxieId1, _rentedAxieId2);
 		AxieOffer storage _rentedAxieOffer1 = axieToOffer[_rentedAxieId1];
@@ -79,9 +91,21 @@ contract AxiesSiring is AxiesTransfer {
 		//effect
 		axieToOffer[_rentedAxieId1].maxBreeds--; //safe because the check above (maxBreeds > 0) asserts that (a >= b) in (a - b) scenario.
 		axieToOffer[_rentedAxieId2].maxBreeds--;
+		if (_useBalance) {
+			uint256 _prevBalance = SLPBalance[msg.sender];
+			if (_prevBalance >= _totalSLPCost) {
+				SLPBalance[msg.sender] = _prevBalance.sub(_totalSLPCost);
+				_totalSLPCost = 0;
+			} else {
+				SLPBalance[msg.sender] = 0;
+				_totalSLPCost = _totalSLPCost.sub(_prevBalance);
+			}
+		}
 
 		//interact
-		SLP.transferFrom(msg.sender, address(this), _totalSLPCost);
+		if (_totalSLPCost > 0) {
+			SLP.transferFrom(msg.sender, address(this), _totalSLPCost);
+		}
 		_payFee(uint256(_rentedAxieOffer1.ownerFee), _rentedAxieOffer1.owner);
 		_payFee(uint256(_rentedAxieOffer2.ownerFee), _rentedAxieOffer2.owner);
 		uint256 _babyAxieId = AXIE_BREEDING.breedOwnedAxies{value:msg.value}(_rentedAxieId1, _rentedAxieId2, _birthplace);
@@ -91,7 +115,7 @@ contract AxiesSiring is AxiesTransfer {
 	}
 
 
-	//V0.1 of claiming SLP balance. Maybe we should use ERC721 functions so that other contracts can interact with ours.
+	//V0.1 of claiming SLP balance.
 
 	function getSLPBalance(address _balanceOwner) view public returns(uint256 balance){
 		return (SLPBalance[_balanceOwner]);
