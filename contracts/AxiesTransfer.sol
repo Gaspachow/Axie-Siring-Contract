@@ -52,7 +52,7 @@ contract AxiesTransfer is Ownable, Pausable {
 		emit AxieDeposit(_axieId, _ownerFee);
 	}
 
-	function retrieveAxie(uint256 _axieId) external whenNotPaused {
+	function retrieveAxie(uint256 _axieId) external {
 		require(msg.sender == axieToOffer[_axieId].owner, "AxieTransfer: You are not the owner of this Axie");
 		delete axieToOffer[_axieId];
 		AXIE_CORE.safeTransferFrom(address(this), msg.sender, _axieId);
