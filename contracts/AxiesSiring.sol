@@ -7,6 +7,11 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract AxiesSiring is AxiesTransfer {
 
+
+	constructor() public {
+        SLP.approve(address(AXIE_BREEDING), uint256(-1));
+    }
+
 	using SafeMath for uint256;
 
 	IERC20 public constant SLP = IERC20(0x37236CD05b34Cc79d3715AF2383E96dd7443dCF1);
@@ -117,17 +122,29 @@ contract AxiesSiring is AxiesTransfer {
 
 	//V0.1 of claiming SLP balance.
 
-	function getSLPBalance(address _balanceOwner) view public returns(uint256 balance){
+	function getSLPBalance(address _balanceOwner) view external returns(uint256 balance){
 		return (SLPBalance[_balanceOwner]);
 	}
 
 	function claimSLP() external {
 		uint256 _balance = SLPBalance[msg.sender];
-		SLPBalance[msg.sender].sub(_balance);
+		SLPBalance[msg.sender] = SLPBalance[msg.sender].sub(_balance);
 		SLP.transferFrom(address(this), msg.sender, _balance);
+	}
+
+	// - Function to add funds to SLPBalance on this contract
+	function addSLPBalance(uint256 _amount) external whenNotPaused {
+		SLP.transferFrom(msg.sender, address(this), _amount);
+		SLPBalance[msg.sender] = SLPBalance[msg.sender].add(_amount);
 	}
 
 	function claimContractCut() external {
 		// TO-DO
+	}
+
+	// - Emergency function to resend an axie accidently manually sent to this contract without calling the supplyAxie function
+	function unlockStuckAxie(uint256 _axieId, address _to) onlyOwner external {
+		require(axieToOffer[_axieId].owner == address(0));
+		AXIE_CORE.approve(_to, _axieId);
 	}
 }
