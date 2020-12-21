@@ -20,8 +20,8 @@ contract AxiesSiring is AxiesTransfer {
 	uint256 contractCut;
 
 
-	event AxieRented(uint256 axieId);
-	event AxieDoubleRented(uint256 axieId1, uint256 axieId2);
+	event AxieRented(uint256 axieId, uint256 babyId);
+	event AxieDoubleRented(uint256 axieId1, uint256 axieId2, uint256 babyId);
 
 	function _getBreedingSLPCost(uint256 _axieIdA, uint256 _axieIdB) private view returns(uint256 totalCost) {
 		(,uint256 _costA) = AXIE_BREEDING.requirementsForBreeding(_axieIdA);
@@ -77,7 +77,7 @@ contract AxiesSiring is AxiesTransfer {
 		AXIE_CORE.safeTransferFrom(address(this), msg.sender, _ownerAxieId);
 		AXIE_CORE.safeTransferFrom(address(this), msg.sender, _babyAxieId);
 		//event trigger
-		emit AxieRented(_rentedAxieId);
+		emit AxieRented(_rentedAxieId, _babyAxieId);
 	}
 
 	function rentTwoAxies(uint256 _rentedAxieId1, uint256 _rentedAxieId2, uint256 _birthplace, bool _useBalance) external whenNotPaused payable {
@@ -116,7 +116,7 @@ contract AxiesSiring is AxiesTransfer {
 		uint256 _babyAxieId = AXIE_BREEDING.breedOwnedAxies{value:msg.value}(_rentedAxieId1, _rentedAxieId2, _birthplace);
 		AXIE_CORE.safeTransferFrom(address(this), msg.sender, _babyAxieId);
 		//event trigger
-		emit AxieDoubleRented(_rentedAxieId1, _rentedAxieId2);
+		emit AxieDoubleRented(_rentedAxieId1, _rentedAxieId2, _babyAxieId);
 	}
 
 
